@@ -1,3 +1,6 @@
+This module owns compilation and execution of transient REPL modules. It turns generated source text into compiled forms and runs selected translated bindings in the current cache context.
+
+\begin{code}
 module Repl.Compiler (
   compileModule,
   runAction,
@@ -5,12 +8,10 @@ module Repl.Compiler (
   runResultIdent,
   runBlock
 ) where
-
 import qualified Prelude ()
 import MHSPrelude
 import Data.List (foldl')
 import Data.Maybe (isJust)
-
 import MicroHs.Compile (Cache, compileModuleP, compileToCombinators)
 import MicroHs.CompileCache (cachedModules)
 import MicroHs.SymTab (SymTab, Entry(..), stLookup, stEmpty)
@@ -25,17 +26,28 @@ import MicroHs.TypeCheck (TModule(..), tBindingsOf, Symbols)
 import MicroHs.Translate (TranslateMap, translateMap, translateWithMap)
 import MicroHs.Builtin (builtinMdl)
 import Unsafe.Coerce (unsafeCoerce)
-
 import Repl.Context
 import Repl.Error
 import Repl.Utils
+\end{code}
 
+\verb|runResultName| is the stable binding name used for generated run wrappers. Using a fixed symbol keeps downstream execution logic simple and deterministic.
+
+\begin{code}
 runResultName :: String
 runResultName = "runResult"
+\end{code}
 
+\verb|runResultIdent| is the identifier form of \verb|runResultName|. It is precomputed to avoid repeated conversions when invoking compiled actions.
+
+\begin{code}
 runResultIdent :: Ident
 runResultIdent = mkIdent runResultName
+\end{code}
 
+\verb|runBlock| wraps a statement in a synthetic \verb|IO ()| binding named \verb|runResult|. The wrapper ensures execution uses \verb|_printOrRun| consistently.
+
+\begin{code}
 runBlock :: String -> String
 runBlock stmt = unlines
   [ runResultName ++ " :: IO ()"
@@ -43,7 +55,11 @@ runBlock stmt = unlines
   , indent stmt
   , "  )"
   ]
+\end{code}
 
+\verb|compileModule| parses and compiles source in the current REPL context. It runs the MicroHs compile pipeline with existing cache and returns compiled module, updated cache, and symbols.
+
+\begin{code}
 compileModule :: ReplCtx -> String -> IO (Either ReplError (TModule [LDef], Cache, Symbols))
 compileModule ctx src =
   case parse pTopModule "<repl>" src of
@@ -53,7 +69,11 @@ compileModule ctx src =
       let (((dmdl, syms, _, _, _), _), cache') = unsafeCoerce r
           cmdl = compileToCombinators dmdl
       pure (Right (cmdl, cache', syms))
+\end{code}
 
+\verb|runAction| executes one compiled identifier in IO. It builds a translation map from cached modules, resolves the target variable, and runs it as an \verb|IO ()| action.
+
+\begin{code}
 runAction :: Cache -> TModule [LDef] -> Ident -> IO (Either ReplError ())
 runAction cache cmdl ident = do
   let defs      = tBindingsOf cmdl
@@ -62,7 +82,11 @@ runAction cache cmdl ident = do
       action    = unsafeCoerce actionAny :: IO ()
   action
   pure (Right ())
+\end{code}
 
+\verb|withBuiltinAliases| augments a translation map with qualified builtin aliases. It inserts aliases only when they are missing to avoid overriding existing entries.
+
+\begin{code}
 withBuiltinAliases :: TranslateMap -> TranslateMap
 withBuiltinAliases mp = foldl' addAlias mp (IMap.toList mp)
   where
@@ -71,3 +95,5 @@ withBuiltinAliases mp = foldl' addAlias mp (IMap.toList mp)
       in if aliasIdent == ident || isJust (IMap.lookup aliasIdent acc)
            then acc
            else IMap.insert aliasIdent val acc
+\end{code}
+

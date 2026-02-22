@@ -112,6 +112,22 @@ To try out xeus-haskell interactively in your web browser, just click on the lin
 
 [Jupyterlite for Haskell](https://jupyter-xeus.github.io/xeus-haskell)
 
+## Documentation Manual
+
+The project manual is generated as a PDF from the LaTeX docs and literate Haskell sources.
+
+Generate it locally:
+
+```bash
+pixi run -e docs generate
+```
+
+This creates `xhaskell.pdf` in the repository root.
+
+The published manual is available on GitHub Pages:
+
+[Xeus-Haskell Manual (PDF)](https://jupyter-xeus.github.io/xeus-haskell/docs/xhaskell.pdf)
+
 ## Features
 
 `xeus-haskell` provides a rich interactive environment for Haskell:

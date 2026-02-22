@@ -1,0 +1,140 @@
+\section{Contributing to xeus-haskell}
+
+
+Thank you for your interest in contributing to \texttt{xeus-haskell}!
+Xeus and xeus-haskell are subprojects of Project Jupyter and subject to the\href{https://github.com/jupyter/governance}{Jupyter governance} and\href{https://github.com/jupyter/governance/blob/master/conduct/code\_of\_conduct.md}{Code of conduct}.
+\subsection{General Guidelines}
+
+
+For general documentation about contributing to Jupyter projects, see the\href{https://jupyter.readthedocs.io/en/latest/contributor/content-contributor.html}{Project Jupyter Contributor Documentation}.
+\subsection{Community}
+
+
+The Xeus team organizes public video meetings. The schedule for future meetings andminutes of past meetings can be found on our\href{https://jupyter-xeus.github.io/}{team compass}.
+\subsection{Getting Started}
+
+
+\subsubsection{Prerequisites}
+
+
+The project uses \href{https://pixi.sh/}{Pixi} for dependency management and workflow automation. If you haven't installed it yet:
+\begin{minted}{text}
+curl -fsSL https://pixi.sh/install.sh | sh
+\end{minted}
+
+
+\subsubsection{Setting Up Your Environment}
+
+
+\begin{enumerate}
+\item Fork the repository on GitHub.
+\item Clone your fork locally:
+\end{enumerate}
+
+
+\begin{minted}{text}
+git clone https://github.com/<your-username>/xeus-haskell.git
+cd xeus-haskell
+\end{minted}
+
+
+\begin{enumerate}
+\item Initialize the development environment:
+\end{enumerate}
+
+
+\begin{minted}{text}
+pixi run -e default prebuild
+\end{minted}
+
+
+The \texttt{default} environment includes all necessary tools (CMake, C++ compilers, Python for testing, etc.).
+\subsection{Development Workflow}
+
+
+\subsubsection{Building the Kernel}
+
+
+To build and install the kernel in your local environment:
+\begin{minted}{text}
+pixi run -e default build
+pixi run -e default install
+\end{minted}
+
+
+\subsubsection{Running Tests}
+
+
+We use \texttt{pytest} and \texttt{ctest} for verifying the kernel:
+\begin{minted}{text}
+# Run C++ tests
+pixi run -e default ctest
+
+# Run Python-based Jupyter kernel tests
+pixi run -e default pytest
+\end{minted}
+
+
+\subsubsection{Working with WebAssembly (JupyterLite)}
+
+
+If you are contributing to the WebAssembly build, you need the \texttt{wasm-build} and \texttt{wasm-host} environments:
+\begin{minted}{text}
+# Prepare the WASM host environment
+pixi install -e wasm-build
+pixi install -e wasm-host
+
+# Build for WebAssembly
+pixi run -e wasm-build prebuild
+pixi run -e wasm-build build
+pixi run -e wasm-build install
+
+# Run the JupyterLite server locally
+pixi run -e wasm-build serve
+\end{minted}
+
+
+\subsection{Project Structure}
+
+
+\begin{itemize}
+\item \texttt{src/}: C++ source code for the kernel and REPL bridge.
+\item \texttt{include/}: C++ header files.
+\item \texttt{share/}: Haskell side of the implementation, including \texttt{Repl.lhs} and MicroHs libraries.
+\item \texttt{test/}: Python tests for kernel functionality.
+\item \texttt{docs/}: LaTeX source files for project documentation.
+\item \texttt{xhaskell.tex}: Root LaTeX document that assembles docs and literate Haskell sources.
+\end{itemize}
+
+
+\subsection{Style Guidelines}
+
+
+\begin{itemize}
+\item \textbf{C++}: Follow modern C++ practices. We use Xeus as the base library.
+\item \textbf{Haskell}: Since we use MicroHs, avoid dependencies or language features not supported by the MicroHs compiler.
+\item \textbf{Documentation}: Write documentation in LaTeX (\texttt{.tex}) and keep examples runnable with the current Pixi workflows.
+\end{itemize}
+
+\subsubsection{Building Documentation}
+
+Generate the project PDF documentation with:
+\begin{minted}{text}
+pixi run -e docs generate
+\end{minted}
+
+
+\subsection{Submitting Changes}
+
+
+\begin{enumerate}
+\item Create a new branch for your feature or bugfix.
+\item Ensure all tests pass.
+\item Submit a Pull Request with a clear description of the changes.
+\end{enumerate}
+
+
+\subsection{Community}
+
+
+Join our public video meetings! The schedule and minutes are available on our \href{https://jupyter-xeus.github.io/}{Team Compass}.

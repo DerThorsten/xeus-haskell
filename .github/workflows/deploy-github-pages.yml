@@ -54,6 +54,20 @@ jobs:
         shell: bash
         run: pixi run -e wasm-build generate
 
+      - name: Prepare docs environment
+        shell: bash
+        run: pixi install -e docs
+
+      - name: Generate docs
+        shell: bash
+        run: pixi run -e docs generate
+
+      - name: Bundle docs into Pages artifact
+        shell: bash
+        run: |
+          mkdir -p dist/docs
+          cp xhaskell.pdf dist/docs/xhaskell.pdf
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:

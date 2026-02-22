@@ -44,7 +44,15 @@ endfunction()
 
 function(build_and_install_libmhs MICROHS_BIN MICROHS_SRC_DIR)
     set(OUTPUT_HEADER "${CMAKE_CURRENT_BINARY_DIR}/Repl_stub.h")
-    set(REPL_HS "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl.hs")
+    set(REPL_LHS_DEPS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Analysis.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Compiler.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Context.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Error.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Executor.lhs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Repl/Utils.lhs"
+    )
     set(REPL_C "${CMAKE_CURRENT_BINARY_DIR}/Repl.c")
     set(EVAL_C "${MICROHS_SRC_DIR}/src/runtime/eval.c")
     set(REPL_O "${CMAKE_CURRENT_BINARY_DIR}/Repl.o")
@@ -58,7 +66,7 @@ function(build_and_install_libmhs MICROHS_BIN MICROHS_SRC_DIR)
 
     add_custom_command(
         OUTPUT ${REPL_C} ${OUTPUT_HEADER}
-        DEPENDS ${REPL_HS}
+        DEPENDS ${REPL_LHS_DEPS}
         COMMAND ${CMAKE_COMMAND} -E env
                 "MHSDIR=${MICROHS_SRC_DIR}"
                 ${MICROHS_BIN}

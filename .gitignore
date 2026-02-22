@@ -96,6 +96,18 @@ coverage.xml
 # Documentation
 /site
 docs/_build/
+_minted-xhaskell/
+xhaskell.pdf
+xhaskell.aux
+xhaskell.fdb_latexmk
+xhaskell.fls
+xhaskell.log
+xhaskell.out
+xhaskell.toc
+xhaskell.xdv
+pdflatex*.fls
+xhaskell-dot2tex-fig*.dot
+xhaskell-dot2tex-fig*.tex
 
 # OS specific
 .DS_Store

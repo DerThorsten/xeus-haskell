@@ -1,0 +1,56 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{minted}
+\geometry{margin=1in}
+
+\definecolor{xhbg}{HTML}{FAFAFA}
+\setminted{
+  fontsize=\small,
+  breaklines=true,
+  autogobble=true,
+  frame=single,
+  framesep=2mm,
+  linenos=true,
+  tabsize=2,
+  bgcolor=xhbg
+}
+\usemintedstyle{friendly}
+
+\newminted[code]{haskell}{}
+
+\title{Xeus-Haskell: Docs and Literate Sources}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\input{docs/index.tex}
+\input{docs/COMMUNICATION.tex}
+\input{docs/REPL.tex}
+\input{docs/CONTRIBUTING.tex}
+\input{docs/TODO.tex}
+\clearpage
+\section{Literate Haskell Source}
+\subsection{REPL Foreign-Function Interface Module}
+\input{src/Repl.lhs}
+\subsection{Snippet Analysis and Parsing Module}
+\input{src/Repl/Analysis.lhs}
+\subsection{Compilation and Execution Translation Module}
+\input{src/Repl/Compiler.lhs}
+\subsection{Persistent Context and Definition Storage Module}
+\input{src/Repl/Context.lhs}
+\subsection{Error Classification and Rendering Module}
+\input{src/Repl/Error.lhs}
+\subsection{Runtime Command Execution Module}
+\input{src/Repl/Executor.lhs}
+\subsection{Shared Utility Functions Module}
+\input{src/Repl/Utils.lhs}
+
+\end{document}

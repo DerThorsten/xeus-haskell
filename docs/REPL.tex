@@ -1,0 +1,140 @@
+\section{MicroHs REPL Mechanism}
+
+
+This document provides a technical overview of how the REPL (Read-Eval-Print Loop) is implemented in \texttt{xeus-haskell}.
+\subsection{Overview}
+
+
+Unlike kernels based on GHC, \texttt{xeus-haskell} leverages \textbf{MicroHs}, a minimal Haskell implementation. The REPL provides an incremental execution environment where state (definitions and types) is preserved across multiple Jupyter cells.
+\subsection{Core Components}
+
+
+\subsubsection{1. Haskell REPL Engine Layer}
+
+
+The core logic is written in Haskell and compiled with MicroHs into C code, then linked into the final executable. It is responsible for:
+\begin{itemize}
+\item \textbf{Context Management}: Maintaining the \texttt{ReplCtx} which stores user-defined code snippets, the compiler's incremental \texttt{Cache}, and persistent \texttt{Symbols} for type checking.
+\item \textbf{Parsing and Analysis}: Using \texttt{MicroHs.Parse} and \texttt{MicroHs.Lex} to validate definitions and expressions.
+\item \textbf{Incremental Compilation}: Generating a transient \texttt{Inline} module that imports the current environment and compiling it to combinators for execution.
+\item \textbf{Shadowing Logic}: Detecting Redefined identifiers and stripping older versions from the internal state to simulate a natural REPL experience.
+\end{itemize}
+
+
+\subsubsection{2. Native C++ Runtime Bridge}
+
+
+A mediator between the Xeus kernel and the MicroHs backend. It provides:
+\begin{itemize}
+\item \textbf{FFI Wrapper}: A class-based API (\texttt{MicroHsRepl}) that manages the \texttt{StablePtr} life cycle and translates between C++ strings and FFI-safe types.
+\item \textbf{Stdout Capture}: A robust platform-specific implementation (using \texttt{pipe} and \texttt{dup2} on POSIX, or named pipes on Windows) to intercept output from MicroHs's internal runtime.
+\item \textbf{Resource Management}: Initializing the MicroHs runtime environment and locating the standard library (\texttt{MHSDIR}).
+\end{itemize}
+
+
+\subsubsection{3. Jupyter Interpreter Integration}
+
+
+The entry point for all Jupyter protocol interactions, inheriting from \texttt{xeus::xinterpreter}. It handles:
+\begin{itemize}
+\item \textbf{Request Routing}: Mapping incoming messages like \texttt{execute\_request}, \texttt{complete\_request}, or \texttt{inspect\_request} to the appropriate \texttt{MicroHsRepl} methods.
+\item \textbf{MIME Formatting}: Packaging captured results into Jupyter-compatible JSON payloads (e.g., wrapping plain text in \texttt{text/plain}).
+\item \textbf{Kernel Metadata}: Providing details about the implementation, such as the Haskell version and pygments lexer settings.
+\item \textbf{Lifecycle Control}: Handling kernel shutdown and initialization (warmup).
+\end{itemize}
+
+
+---
+\subsubsection{High-Level Sequence}
+
+
+\begin{enumerate}
+\item Jupyter sends \texttt{execute\_request(code)} to the Xeus interpreter.
+\item The interpreter forwards code to the C++ REPL bridge.
+\item The bridge redirects stdout, then calls \texttt{replExecute(code)} in the MicroHs backend.
+\item The backend performs scan/split, compiles definitions or run blocks, and executes.
+\item The backend returns status to the bridge.
+\item The bridge restores stdout, reads captured output, and returns output + status to the interpreter.
+\item The interpreter emits \texttt{execute\_reply} and stdout stream messages to Jupyter.
+\end{enumerate}
+
+
+\subsubsection{1. Mixed cell support (Scan and Split)}
+
+
+Unlike standard REPLs that might expect a single statement per line, \texttt{xeus-haskell} supports cells containing a mix of definitions and expressions. It applies a \textbf{Scan and Split} algorithm to determine the execution boundary. This same algorithm is used both for \textbf{execution} and for \textbf{completeness checking} (\texttt{is\_complete}).
+
+
+\begin{enumerate}
+\item \textbf{Greedy Prefix Search}: The kernel scans the cell line-by-line from the bottom up to find the largest prefix that forms a valid set of Haskell definitions.
+\item \textbf{Definition Processing}: Any lines identified as definitions are appended to the persistent context and compiled.
+\item \textbf{Expression Execution}: The remaining lines (the "execution block") are processed as follows:
+    - \textbf{Raw Expression}: First, the kernel tries to parse the block as a single pure expression (e.g., \texttt{1 + 1}).    - \textbf{Monadic \texttt{do}-wrapping}: If it's not a single expression, the kernel wraps the block in a \texttt{do} block (e.g., for multiple \texttt{putStrLn} calls) to allow sequential IO execution.\end{enumerate}
+
+
+\subsubsection{2. State Maintenance (The persistent Context)}
+
+
+State is maintained through a persistent \texttt{ReplCtx} structure in \texttt{Repl.lhs}:
+\begin{minted}{haskell}
+data ReplCtx = ReplCtx
+  { rcFlags :: Flags       -- Compilation flags
+  , rcCache :: Cache       -- MicroHs compiler cache
+  , rcDefs  :: [StoredDef]  -- List of user-defined snippets
+  , rcSyms  :: Symbols     -- Persistent symbol tables for introspection
+  }
+\end{minted}
+
+
+When a definition is entered:
+\begin{enumerate}
+\item \textbf{Name Extraction}: The kernel identifies which names (identifiers) are being defined.
+\item \textbf{Shadowing}: If a previous definition exists with the same name, it is stripped from \texttt{rcDefs} to simulate shadowing.
+\item \textbf{Incremental Module}: All stored definitions are concatenated into a temporary source file (the "Inline" module).
+\item \textbf{Cache Update}: The module is re-compiled, and the internal compiler cache is updated.
+\end{enumerate}
+
+
+When an execution block is entered:
+\begin{enumerate}
+\item \textbf{Wrapping}: If the block was identified as requiring monadic execution, it is wrapped in an artificial \texttt{do} block and then placed into a temporary \texttt{runResult} function inside the "Inline" module.
+\item \textbf{Execution wrapper}: It uses \texttt{\_printOrRun} to correctly handle both pure values (printing them) and \texttt{IO} actions (executing them).
+\item \textbf{Evaluation}: The temporary module is compiled and executed. Because the previous definitions in the same cell were already committed to the cache in the "Handling Definitions" phase, the expression has access to them immediately.
+\end{enumerate}
+
+
+\subsubsection{3. Completeness Checking}
+
+
+The kernel implements the \texttt{is\_complete} request to provide a smooth interactive experience in the Jupyter frontend.
+\begin{enumerate}
+\item \textbf{Algorithm Re-use}: The \texttt{is\_complete} logic uses the same \textbf{Scan and Split} algorithm as execution.
+\item \textbf{Status Mapping}:
+    - \textbf{\texttt{complete}}: If the split algorithm finds a boundary where the prefix is a valid set of definitions and the remainder is a valid expression (optionally wrapped in \texttt{do}).    - \textbf{\texttt{invalid}}: If the algorithm fails to find any valid boundary after scanning all possible split points.    - \textbf{\texttt{incomplete}}: (Future work) If the code ends with unclosed delimiters (e.g., \texttt{let x = 1 in}) or unbalanced braces. Currently, it primarily distinguishes between parseable and unparseable code.\end{enumerate}
+
+
+---
+\subsection{Technical Details}
+
+
+\subsubsection{Standard Output Redirection}
+
+
+Since MicroHs writes directly to \texttt{stdout}, \texttt{xeus-haskell} implements a robust capture mechanism in C++. It creates a POSIX pipe (or Windows pipe) and duplicates the stdout file descriptor during the execution of a cell. This allows the kernel to intercept everything produced by \texttt{putStrLn}, \texttt{print}, or the \texttt{Display} system.
+\subsubsection{Optimization: The Warmup Expression}
+
+
+During initialization, the \texttt{MicroHsRepl} constructor evaluates a trivial code snippet (\texttt{"0"}). This triggers the initial compilation of the \texttt{Prelude} and other standard libraries, caching them in the \texttt{Cache} to ensure subsequent cell executions are fast.
+\subsubsection{Limitations}
+
+
+\begin{itemize}
+\item \textbf{Selective Redefinition}: Because the kernel concatenates all previous definitions for every cell that adds a new definition, very large notebooks with hundreds of complex definitions may see a slight compilation slowdown.
+\item \textbf{MicroHs Boundaries}: Language features are limited to those supported by the MicroHs compiler (Haskell 2010 + some extensions). GHC-specific extensions (like \texttt{TypeApplications} or \texttt{GADTs}) are generally not available.
+\end{itemize}
+
+
+\subsection{Advanced Usage: Display System}
+
+
+The REPL is integrated with the rich content protocol described in \href{./COMMUNICATION.tex}{COMMUNICATION.tex}. If an expression evaluates to a type that implements the \texttt{Display} typeclass, its output is automatically wrapped in the rich content markers and rendered as HTML, LaTeX, or Markdown in the notebook.
