@@ -3,30 +3,13 @@
 
 #include <algorithm>
 #include <chrono>
-#include <cctype>
 #include <iostream>
-#include <ranges>
-#include <string>
 #include <string_view>
+
+#include "test_helpers.hpp"
 
 using namespace boost::ut;
 using namespace std::string_literals;
-
-auto trim(std::string_view s) -> std::string {
-    auto is_space = [](unsigned char c) { return std::isspace(c); };
-
-    auto trimmed = s 
-        | std::views::drop_while(is_space)
-        | std::views::reverse
-        | std::views::drop_while(is_space)
-        | std::views::reverse;
-
-    return {trimmed.begin(), trimmed.end()};
-}
-
-auto expect_trim_eq = [](std::string_view a, std::string_view b) {
-    expect(eq(trim(a), trim(b))) << "expected (ignoring spaces): " << a << " == " << b;
-};
 
 auto repl_instance = []() -> xeus_haskell::MicroHsRepl& {
     static xeus_haskell::MicroHsRepl repl;
@@ -39,7 +22,7 @@ int main() {
         auto result = repl.execute("1 + 1");
 
         expect(result.ok);
-        expect_trim_eq(result.output, "2");
+        test_helpers::expect_trim_eq(result.output, "2");
     };
 
     "stdout is captured"_test = [] {
@@ -85,7 +68,7 @@ print "Hello World!")";
 
         auto res = repl.execute("xh_def_test");
         expect(res.ok);
-        expect_trim_eq(res.output, "42");
+        test_helpers::expect_trim_eq(res.output, "42");
     };
 
     "redefinitions replace old values"_test = [] {
@@ -98,7 +81,7 @@ print "Hello World!")";
 
         auto res = repl.execute("xh_redef_test");
         expect(res.ok);
-        expect_trim_eq(res.output, "5");
+        test_helpers::expect_trim_eq(res.output, "5");
     };
 
     "completion candidates include definitions and reserved ids"_test = [] {
@@ -129,18 +112,18 @@ data XhTypeableRecord = XhTypeableRecord
         // must continue to work.
         auto eval_res = repl.execute("xhField (XhTypeableRecord 42)");
         expect(eval_res.ok) << eval_res.error;
-        expect_trim_eq(eval_res.output, "42");
+        test_helpers::expect_trim_eq(eval_res.output, "42");
 
         auto simple_res = repl.execute("20 + 22");
         expect(simple_res.ok) << simple_res.error;
-        expect_trim_eq(simple_res.output, "42");
+        test_helpers::expect_trim_eq(simple_res.output, "42");
     };
 
     "expressions evaluate"_test = [] {
         auto& repl = repl_instance();
         auto res = repl.execute("let (a, b) = (10, 20) in a + b");
         expect(res.ok);
-        expect_trim_eq(res.output, "30");
+        test_helpers::expect_trim_eq(res.output, "30");
     };
 
     "type command reports expression type"_test = [] {
