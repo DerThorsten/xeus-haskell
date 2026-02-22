@@ -10,8 +10,6 @@ import qualified Prelude ()
 import MHSPrelude
 
 import Control.Applicative ((<|>))
-import Control.Monad.Trans.Class (lift)
-import Control.Monad.Trans.Except (ExceptT(..), runExceptT)
 import Data.Maybe (isJust, listToMaybe, mapMaybe)
 
 import MicroHs.Ident (mkIdent)
@@ -40,19 +38,30 @@ data Completion
   | Invalid
 
 replDefine :: ReplCtx -> String -> IO (Either ReplError ReplCtx)
-replDefine ctx snippet = runExceptT $ do
-  let snippetWithNewline = ensureTrailingNewline snippet
-  defsWithNew <- ExceptT (pure (appendDefinition ctx snippetWithNewline))
-  (_, cache', syms') <- ExceptT (compileModule ctx (moduleFromDefs defsWithNew))
-  pure ctx{ rcDefs = defsWithNew, rcCache = cache', rcSyms = syms' }
+replDefine ctx snippet =
+  case appendDefinition ctx snippetWithNewline of
+    Left err -> pure (Left err)
+    Right defsWithNew -> do
+      compiled <- compileModule ctx (moduleFromDefs defsWithNew)
+      case compiled of
+        Left err -> pure (Left err)
+        Right (_, cache', syms') ->
+          pure (Right ctx{ rcDefs = defsWithNew, rcCache = cache', rcSyms = syms' })
+  where
+    snippetWithNewline = ensureTrailingNewline snippet
 
 replRun :: ReplCtx -> String -> IO (Either ReplError ReplCtx)
-replRun ctx stmt = runExceptT $ do
+replRun ctx stmt = do
   let block = runBlock stmt
       src = moduleSourceWith ctx block
-  (cmdl, cache', syms') <- ExceptT (compileModule ctx src)
-  _ <- ExceptT (runAction cache' cmdl runResultIdent)
-  pure ctx{ rcCache = cache', rcSyms = syms' }
+  compiled <- compileModule ctx src
+  case compiled of
+    Left err -> pure (Left err)
+    Right (cmdl, cache', syms') -> do
+      ran <- runAction cache' cmdl runResultIdent
+      case ran of
+        Left err -> pure (Left err)
+        Right () -> pure (Right ctx{ rcCache = cache', rcSyms = syms' })
 
 replIsComplete :: ReplCtx -> String -> IO String
 replIsComplete ctx snippet = pure (toText completion)
@@ -177,9 +186,11 @@ firstValidSplitPlan ctx snippetLines =
   listToMaybe (mapMaybe (classifySplit ctx snippetLines) [length snippetLines, length snippetLines - 1 .. 0])
 
 defineThenRun :: ReplCtx -> String -> String -> IO (Either ReplError ReplCtx)
-defineThenRun ctx defPart runPart = runExceptT $ do
-  ctx' <- ExceptT (replDefine ctx defPart)
-  ExceptT (replRun ctx' runPart)
+defineThenRun ctx defPart runPart = do
+  defined <- replDefine ctx defPart
+  case defined of
+    Left err -> pure (Left err)
+    Right ctx' -> replRun ctx' runPart
 
 runProbe
   :: ReplCtx
@@ -189,18 +200,18 @@ runProbe
   -> String
   -> (Symbols -> Maybe String)
   -> IO (Either ReplError ReplCtx)
-runProbe ctx emptyInputError inferError shown src infer = runExceptT $ do
-  shown' <- ExceptT (pure $
-    if null shown
-      then Left (ReplRuntimeError emptyInputError)
-      else Right shown)
-  (_, _, syms) <- ExceptT (compileModule ctx src)
-  inferred <- maybe
-    (ExceptT (pure (Left (ReplRuntimeError inferError))))
-    pure
-    (infer syms)
-  lift (putStrLn ("> " ++ shown' ++ " :: " ++ inferred))
-  pure ctx
+runProbe ctx emptyInputError inferError shown src infer
+  | null shown = pure (Left (ReplRuntimeError emptyInputError))
+  | otherwise = do
+      compiled <- compileModule ctx src
+      case compiled of
+        Left err -> pure (Left err)
+        Right (_, _, syms) ->
+          case infer syms of
+            Nothing -> pure (Left (ReplRuntimeError inferError))
+            Just inferred -> do
+              putStrLn ("> " ++ shown ++ " :: " ++ inferred)
+              pure (Right ctx)
 
 lookupRendered scope ident table shown =
   case stLookup scope ident table of
