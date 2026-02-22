@@ -76,6 +76,7 @@ sh -c 'find . -type l -exec ln -sf ../../../opt/emsdk/upstream/bin/{} {} \\;'
 prebuild = """
 export PREFIX=$CONDA_PREFIX/../wasm-host;
 emcmake cmake
+  -Wno-dev
   -S $PWD
   -B wasm-build
   -DCMAKE_BUILD_TYPE=Release
