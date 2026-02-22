@@ -314,7 +314,9 @@ if(EMSCRIPTEN)
     xeus_wasm_link_options(xhaskell "web,worker")
     target_link_options(xhaskell
       PUBLIC --bind
+      PUBLIC "SHELL: -Wno-version-check"
       PUBLIC "SHELL: -sWASMFS"
+      PUBLIC "SHELL: -s EXPORTED_RUNTIME_METHODS=[\"FS\",\"ENV\",\"PATH\",\"LDSO\",\"loadDynamicLibrary\",\"ERRNO_CODES\"]"
       PUBLIC "SHELL: --pre-js ${CMAKE_CURRENT_SOURCE_DIR}/src/pre.js"
       PUBLIC "SHELL: --post-js ${CMAKE_CURRENT_SOURCE_DIR}/src/post.js"
     )
@@ -427,4 +429,3 @@ install(
     DIRECTORY ${CMAKE_SOURCE_DIR}/src/XHaskell/
     DESTINATION usr/lib/haskell-packages/microhs/XHaskell
 )
-
