@@ -151,7 +151,7 @@ The published manual is available on GitHub Pages:
 
 ## Contributing
 
-See [docs/CONTRIBUTING.tex](./docs/CONTRIBUTING.tex) to know how to contribute and set up a
+See [xhaskell.tex](./xhaskell.tex) and the published [Xeus-Haskell Manual (PDF)](https://jupyter-xeus.github.io/xeus-haskell/docs/xhaskell.pdf) to know how to contribute and set up a
 development environment.
 
 ## License
