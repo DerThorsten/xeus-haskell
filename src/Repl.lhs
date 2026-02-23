@@ -3,8 +3,7 @@
 
 The MicroHs REPL layer provides the continuity required by notebooks: each cell is evaluated against a persistent semantic context rather than in isolation. The C++ Xeus interpreter forwards requests through a small FFI surface, and this module translates those requests into explicit, auditable transitions over \verb|ReplCtx|.
 
-A practical constraint of MicroHs is that startup work and incremental compilation cost must be managed carefully. Let
-$T_{\mathrm{cell}} = T_{\mathrm{decode}} + T_{\mathrm{compile}} + T_{\mathrm{eval}} + T_{\mathrm{encode}}$.
+A practical constraint of MicroHs is that startup work and incremental compilation cost must be managed carefully.
 The implementation therefore keeps the FFI contract narrow and deterministic so cache reuse and error normalization remain predictable across repeated notebook interactions.
 
 \subsection{Foreign-Function Interface Module}
