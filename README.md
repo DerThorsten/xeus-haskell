@@ -1,6 +1,9 @@
 # ![xeus-haskell](xeus-logo.svg)
 
 [![Build Status](https://github.com/jupyter-xeus/xeus-haskell/actions/workflows/main.yml/badge.svg)](https://github.com/jupyter-xeus/xeus-haskell/actions/workflows/main.yml)
+[![Documentation](https://img.shields.io/badge/docs-passing-green)](https://jupyter-xeus.github.io/xeus-haskell/docs/xhaskell.pdf)
+[![lite-badge](https://jupyterlite.rtfd.io/en/latest/_static/badge.svg)](https://jupyter-xeus.github.io/xeus-haskell/)
+[![Zulip](https://img.shields.io/badge/social_chat-zulip-blue.svg)](https://jupyter.zulipchat.com/#narrow/channel/539737-Jupyter-Kernels)
 
 `xeus-haskell` is a Jupyter kernel for haskell based on the native implementation of the
 Jupyter protocol [xeus](https://github.com/jupyter-xeus/xeus).
