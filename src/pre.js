@@ -1,37 +1,42 @@
-const installLegacyWasmFsMountShim = () => {
-  if (!Module?.FS || typeof Module.FS.mount !== "function") {
-    return;
-  }
-  if (Module.FS.__xhLegacyWasmFsMountShimInstalled) {
-    return;
-  }
+// Note from @DerThorsten:
+// to make this work with emscripten-4x we just disable all WASMFS related
+// code. This makes the loading of the kernel somehow very very slow
+// but it will get idle eventually.
 
-  const originalMount = Module.FS.mount.bind(Module.FS);
+// const installLegacyWasmFsMountShim = () => {
+//   if (!Module?.FS || typeof Module.FS.mount !== "function") {
+//     return;
+//   }
+//   if (Module.FS.__xhLegacyWasmFsMountShimInstalled) {
+//     return;
+//   }
 
-  Module.FS.mount = (type, opts, mountpoint) => {
-    if (!type || typeof type.createBackend === "function") {
-      return originalMount(type, opts, mountpoint);
-    }
+//   const originalMount = Module.FS.mount.bind(Module.FS);
 
-    // jupyterlite-xeus can still pass legacy FS mount objects.
-    if (typeof _wasmfs_create_memory_backend !== "function") {
-      console.warn("[xeus-haskell] WasmFS shim unavailable, using original mount");
-      return originalMount(type, opts, mountpoint);
-    }
+//   Module.FS.mount = (type, opts, mountpoint) => {
+//     if (!type || typeof type.createBackend === "function") {
+//       return originalMount(type, opts, mountpoint);
+//     }
 
-    const typeName = type.name || type.constructor?.name || "legacy-fs-type";
-    console.warn(
-      `[xeus-haskell] WasmFS shim: ${typeName} -> memory backend at ${mountpoint}`
-    );
-    return originalMount(
-      { createBackend: () => _wasmfs_create_memory_backend() },
-      opts,
-      mountpoint
-    );
-  };
+//     // jupyterlite-xeus can still pass legacy FS mount objects.
+//     if (typeof _wasmfs_create_memory_backend !== "function") {
+//       console.warn("[xeus-haskell] WasmFS shim unavailable, using original mount");
+//       return originalMount(type, opts, mountpoint);
+//     }
 
-  Module.FS.__xhLegacyWasmFsMountShimInstalled = true;
-};
+//     const typeName = type.name || type.constructor?.name || "legacy-fs-type";
+//     console.warn(
+//       `[xeus-haskell] WasmFS shim: ${typeName} -> memory backend at ${mountpoint}`
+//     );
+//     return originalMount(
+//       { createBackend: () => _wasmfs_create_memory_backend() },
+//       opts,
+//       mountpoint
+//     );
+//   };
+
+//   Module.FS.__xhLegacyWasmFsMountShimInstalled = true;
+// };
 
 // const previousPreRun = Module.preRun;
 // Module.preRun = () => {
@@ -67,7 +72,7 @@ Module.preRun.push(function() {
     Module.ENV.MHSDIR = ENV.MHSDIR;
     Module.ENV.MHS_LIBRARY_PATH = ENV.MHS_LIBRARY_PATH;
 
-    FS.writeFile('/input.txt', 'Hello from preRun');
+
 });
 
 
