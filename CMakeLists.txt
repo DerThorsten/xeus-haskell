@@ -20,8 +20,6 @@ if(NOT DEFINED XEUS_HASKELL_MICROHS_VERSION)
     set(XEUS_HASKELL_MICROHS_VERSION "v0.15.3.0" CACHE STRING "MicroHs tag to fetch")
 endif()
 
-
-
 # Versionning
 # ===========
 
