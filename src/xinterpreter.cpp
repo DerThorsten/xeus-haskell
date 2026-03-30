@@ -97,7 +97,6 @@ nl::json interpreter::complete_request_impl(const std::string &code,
     --start;
   }
 
-
   if (start == cursor && cursor > 0) {
     // Fallback in case locale-dependent isalnum disagrees with our identifier
     // check.
