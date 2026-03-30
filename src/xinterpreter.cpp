@@ -29,9 +29,7 @@ namespace fs = std::filesystem;
 namespace xeus_haskell {
 
 
-interpreter::interpreter() { 
-  xeus::register_interpreter(this);
-}
+interpreter::interpreter() { xeus::register_interpreter(this); }
 
 void interpreter::execute_request_impl(send_reply_callback cb,
                                        int execution_counter,
