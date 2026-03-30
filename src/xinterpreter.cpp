@@ -21,10 +21,8 @@
 
 #include "xeus-haskell/xinterpreter.hpp"
 
-
 namespace nl = nlohmann;
 namespace xeus_haskell {
-
 
 interpreter::interpreter() { xeus::register_interpreter(this); }
 
