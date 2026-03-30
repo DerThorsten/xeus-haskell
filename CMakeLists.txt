@@ -21,14 +21,6 @@ if(NOT DEFINED XEUS_HASKELL_MICROHS_VERSION)
 endif()
 
 
-# debug info
-# ==========
-# print compiler and build type
-message(STATUS "CMAKE_CXX_COMPILER: ${CMAKE_CXX_COMPILER} ID ${CMAKE_CXX_COMPILER_ID}")
-if(EMSCRIPTEN)
-    message(STATUS "EMSCRIPTEN: ${EMSCRIPTEN}")
-endif()
-
 
 # Versionning
 # ===========
